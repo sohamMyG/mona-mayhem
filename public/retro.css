@@ -1,0 +1,218 @@
+/* Retro arcade stylesheet for Mona Mayhem */
+:root {
+  --bg: #0a0a1a;
+  --green: #5fed83;
+  --purple: #8a2be2;
+  --accent: var(--green);
+  --neon-speed: 3s;
+  --shimmer-speed: 1.8s;
+  --scanline-opacity: 0.04;
+  --container-bg: rgba(20, 20, 30, 0.6);
+}
+
+/* Base */
+body {
+  font-family: 'Press Start 2P', monospace;
+  background: radial-gradient(ellipse at top, rgba(58,34,85,0.12), transparent 30%), var(--bg);
+  color: #e6ffe6;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* CRT scanlines */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(transparent 0 2px, rgba(255,255,255,var(--scanline-opacity)) 2px 3px);
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+  z-index: 1;
+  transform: scaleY(1.02);
+}
+
+/* Container */
+.battle-container {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: 2rem auto;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25));
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.7), 0 0 30px rgba(0,0,0,0.5) inset;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+/* Title */
+.battle-container h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  color: var(--green);
+  text-align: center;
+  text-shadow:
+    0 0 6px rgba(90,255,140,0.18),
+    0 0 14px rgba(138,43,226,0.10),
+    0 0 20px rgba(138,43,226,0.04);
+  animation: neon 3s ease-in-out infinite;
+}
+
+/* Neon pulse */
+@keyframes neon {
+  0%, 100% {
+    text-shadow: 0 0 6px rgba(90,255,140,0.18), 0 0 14px rgba(138,43,226,0.08), 0 0 20px rgba(138,43,226,0.02);
+    color: var(--green);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(138,43,226,0.28), 0 0 20px rgba(90,255,140,0.10);
+    color: var(--purple);
+  }
+}
+
+/* Inputs float-in */
+.inputs input, .battle-btn {
+  animation: floatIn 600ms cubic-bezier(.2,.8,.2,1) both;
+}
+.inputs input:nth-child(1) { animation-delay: 80ms; }
+.inputs input:nth-child(2) { animation-delay: 160ms; }
+.battle-btn { animation-delay: 240ms; }
+
+/* Float keyframes */
+@keyframes floatIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Results area */
+.results {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  align-items: start;
+}
+
+/* Player card */
+.player {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ position: relative;
+ background: rgba(0,0,0,0.25);
+ padding: 0.8rem;
+ border-radius: 8px;
+ min-width: 150px;
+ flex: 1;
+ transition: transform 240ms ease, box-shadow 240ms ease;
+ overflow: hidden;
+}
+
+/* ensure stats area spans full width and grid + stats are centered */
+.player .stats {
+  width: 100%;
+  text-align: center;
+}
+.player .contrib-grid {
+  align-self: center;
+  justify-self: center;
+}
+
+/* Shimmer overlay */
+.player::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -150%;
+  width: 300%;
+  height: 200%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.04) 60%, transparent 100%);
+  transform: skewX(-20deg) translateX(-150%);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  will-change: transform;
+}
+
+/* reveal shimmer when revealed */
+.player.is-revealed::before {
+  opacity: 1;
+  animation: shimmer var(--shimmer-speed) linear;
+}
+
+/* shimmer keyframes */
+@keyframes shimmer {
+  0% { transform: skewX(-20deg) translateX(-150%); }
+  100% { transform: skewX(-20deg) translateX(150%); }
+}
+
+/* Stats */
+.player strong { display:block; margin-bottom:0.5rem; color: #fff; }
+
+/* Grid */
+.contrib-grid { display: grid; grid-template-columns: repeat(7, 12px); gap: 3px; margin-top:0.5rem; }
+.contrib-cell {
+  width:12px; height:12px; border-radius:2px; background:#111; transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.contrib-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px 2px rgba(90,255,140,0.15);
+}
+
+/* VS badge */
+.vs-badge {
+  font-size: 1.8rem;
+  align-self:center;
+  color: #fff;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  transition: transform 220ms ease;
+  background: linear-gradient(90deg, rgba(90,255,140,0.12), rgba(138,43,226,0.12));
+  text-align:center;
+}
+.vs-badge.vs-animate {
+  animation: vsGradient 2.6s linear infinite, vsPop 420ms cubic-bezier(.3,.8,.4,1);
+}
+
+/* gradient shift */
+@keyframes vsGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* pop */
+@keyframes vsPop {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Loading animated color shift */
+.loading {
+  text-align:center;
+  font-weight:700;
+}
+body.is-loading .loading {
+  animation: loadingShift 1.6s linear infinite;
+}
+@keyframes loadingShift {
+  0% { color: var(--green); }
+  50% { color: var(--purple); }
+  100% { color: var(--green); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  body::before { display: none; }
+  .player::before { opacity: 0; }
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .results { flex-direction: column; align-items: stretch; }
+  .vs-badge { margin: 0.4rem 0; }
+  .contrib-grid { grid-template-columns: repeat(7, 10px); gap: 2px; }
+  .contrib-cell { width: 10px; height: 10px; }
+}

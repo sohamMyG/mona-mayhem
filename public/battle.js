@@ -6,16 +6,49 @@ const results = document.getElementById('results');
 const errorDiv = document.getElementById('error');
 const loadingDiv = document.getElementById('loading');
 
-function showError(msg) {
+function showError(msg, invalidInputs) {
   errorDiv.textContent = msg;
   errorDiv.style.display = '';
+  errorDiv.classList.add('is-active');
+  document.body.classList.add('has-error');
+  try {
+    [p1, p2].forEach(input => {
+      input.classList.remove('input-error');
+      input.removeAttribute('aria-invalid');
+    });
+  } catch (e) {}
+  if (Array.isArray(invalidInputs) && invalidInputs.length) {
+    const first = invalidInputs[0];
+    try {
+      first.setAttribute('aria-invalid', 'true');
+      first.classList.add('input-error');
+      first.focus({preventScroll:true});
+    } catch (e) {}
+  }
 }
 function clearError() {
   errorDiv.textContent = '';
   errorDiv.style.display = 'none';
+  errorDiv.classList.remove('is-active');
+  document.body.classList.remove('has-error');
+  try {
+    [p1, p2].forEach(input => {
+      input.classList.remove('input-error');
+      input.removeAttribute('aria-invalid');
+    });
+  } catch (e) {}
 }
 function showLoading(show) {
   loadingDiv.style.display = show ? '' : 'none';
+  try {
+    if (show) {
+      document.body.classList.add('is-loading');
+      document.body.setAttribute('aria-busy', 'true');
+    } else {
+      document.body.classList.remove('is-loading');
+      document.body.removeAttribute('aria-busy');
+    }
+  } catch (e) { /* ignore */ }
 }
 
 const MS_PER_DAY = 86400000;
@@ -130,12 +163,14 @@ function buildGridElement(contribs) {
 function buildStatsElement(contribs) {
   const cid = getAstroCid();
   const el = document.createElement('div');
+  el.className = 'stats';
   if (cid) el.setAttribute(cid.name, cid.value);
   const strong = document.createElement('strong');
   strong.textContent = contribs.username || '';
   el.appendChild(strong);
-  el.appendChild(document.createElement('br'));
-  el.insertAdjacentHTML('beforeend', 'Total: ' + (contribs.total || 0) + '<br>Streak: ' + (contribs.streak || 0) + '<br>' + (contribs.startDate || '') + ' to ' + (contribs.endDate || ''));
+  const info = document.createElement('div');
+  info.innerHTML = 'Total: ' + (contribs.total || 0) + '<br>Streak: ' + (contribs.streak || 0) + '<br>' + (contribs.startDate || '') + ' to ' + (contribs.endDate || '');
+  el.appendChild(info);
   return el;
 }
 
@@ -156,8 +191,11 @@ async function battle() {
   results.innerHTML = '';
   const u1 = p1.value.trim();
   const u2 = p2.value.trim();
-  if (!u1 || !u2) {
-    showError('Both usernames are required.');
+  const invalid = [];
+  if (!u1) invalid.push(p1);
+  if (!u2) invalid.push(p2);
+  if (invalid.length > 0) {
+    showError('Please provide both GitHub usernames.', invalid);
     return;
   }
   showLoading(true);
@@ -174,6 +212,33 @@ async function battle() {
     const [c1, c2] = await Promise.all([r1.json(), r2.json()]);
     const n1 = normalizeContribData(c1, u1);
     const n2 = normalizeContribData(c2, u2);
+
+    // compute shared date range across both users' day arrays and format as dd/mm/yyyy
+    function formatDDMM(dateIso) {
+      if (!dateIso) return '';
+      const parts = dateIso.split('-');
+      if (parts.length !== 3) return dateIso;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    const allDates = [
+      ...(Array.isArray(n1.days) ? n1.days.map(d => d.date) : []),
+      ...(Array.isArray(n2.days) ? n2.days.map(d => d.date) : [])
+    ].filter(Boolean).sort();
+    let sharedStart = '';
+    let sharedEnd = '';
+    if (allDates.length > 0) {
+      sharedStart = formatDDMM(allDates[0]);
+      sharedEnd = formatDDMM(allDates[allDates.length - 1]);
+    } else {
+      sharedStart = formatDDMM(n1.startDate || n2.startDate || '');
+      sharedEnd = formatDDMM(n1.endDate || n2.endDate || '');
+    }
+    // override start/end for display so both players show the same range
+    n1.startDate = sharedStart;
+    n1.endDate = sharedEnd;
+    n2.startDate = sharedStart;
+    n2.endDate = sharedEnd;
+
     // Build DOM nodes with Astro scope attribute so scoped CSS applies
     results.innerHTML = '';
     const playerEl1 = buildPlayerElement(n1);
@@ -186,6 +251,11 @@ async function battle() {
     results.appendChild(playerEl1);
     results.appendChild(vsEl);
     results.appendChild(playerEl2);
+
+    // trigger reveal animations (staggered)
+    setTimeout(() => playerEl1.classList.add('is-revealed'), 80);
+    setTimeout(() => vsEl.classList.add('vs-animate'), 160);
+    setTimeout(() => playerEl2.classList.add('is-revealed'), 240);
   } catch (e) {
     showError('Error: ' + e.message);
   }
