@@ -6,12 +6,350 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Mona Mayhem</title>
+		<title>Mona Mayhem – GitHub Contribution Battle Arena</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
 	</head>
 	<body>
-		<h1>Mona Mayhem</h1>
-		<p>Welcome to Mona Mayhem! Time to build a GitHub Contribution Battle Arena.</p>
+		<div class="battle-container">
+			<button
+				id="theme-toggle"
+				class="theme-toggle"
+				type="button"
+				aria-label="Switch to blue-orange theme"
+				title="Toggle color theme"
+			>🎨</button>
+
+			<h1>GitHub Contribution<br />Battle Arena</h1>
+			<p>Enter two GitHub usernames and let the battle begin!</p>
+
+			<div class="inputs" role="group" aria-label="Player usernames">
+				<label class="sr-only" for="player1">Player 1 GitHub username</label>
+				<input
+					id="player1"
+					type="text"
+					placeholder="Player 1 username"
+					name="player1"
+					aria-label="Player 1 GitHub username"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				<label class="sr-only" for="player2">Player 2 GitHub username</label>
+				<input
+					id="player2"
+					type="text"
+					placeholder="Player 2 username"
+					name="player2"
+					aria-label="Player 2 GitHub username"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				<button id="battle" class="battle-btn" type="button">⚔ BATTLE</button>
+			</div>
+
+			<div id="error" class="error" role="alert" aria-live="assertive" aria-atomic="true"></div>
+			<div id="loading" class="loading" style="display:none" aria-live="polite">Loading…</div>
+
+			<div id="results" class="results"></div>
+		</div>
+
+		<script src="/battle.js" is:inline></script>
+
+		<script>
+			// Theme toggle – persisted in localStorage
+			(function () {
+				const STORAGE_KEY = 'mona-mayhem-theme';
+				const ALT_VALUE = 'alt';
+				const html = document.documentElement;
+				const btn = document.getElementById('theme-toggle') as HTMLButtonElement | null;
+				if (!btn) return;
+
+				function applyTheme(alt: boolean) {
+					if (alt) {
+						html.setAttribute('data-theme', ALT_VALUE);
+						btn!.setAttribute('aria-label', 'Switch to default magenta theme');
+						btn!.title = 'Switch to magenta theme';
+					} else {
+						html.removeAttribute('data-theme');
+						btn!.setAttribute('aria-label', 'Switch to blue-orange theme');
+						btn!.title = 'Switch to blue-orange theme';
+					}
+				}
+
+				// Restore saved preference
+				const saved = localStorage.getItem(STORAGE_KEY);
+				applyTheme(saved === ALT_VALUE);
+
+				btn.addEventListener('click', () => {
+					const isAlt = html.getAttribute('data-theme') === ALT_VALUE;
+					const next = !isAlt;
+					applyTheme(next);
+					if (next) {
+						localStorage.setItem(STORAGE_KEY, ALT_VALUE);
+					} else {
+						localStorage.removeItem(STORAGE_KEY);
+					}
+				});
+			})();
+		</script>
 	</body>
 </html>
+
+<style>
+	/* ── CSS custom properties ────────────────────────────────── */
+	:root {
+		/* Default theme: dark bg + magenta neon */
+		--bg:           #0d0d0d;
+		--panel:        #1a1a2e;
+		--border:       rgba(255, 59, 255, 0.35);
+		--accent:       #ff3bff;
+		--accent-2:     #ff3bff;
+		--muted:        #888;
+		--text:         #e0e0e0;
+		--focus-ring:   0 0 0 3px rgba(255, 59, 255, 0.55);
+		--error-color:  #ff3bff;
+		--error-border: rgba(255, 59, 255, 0.6);
+		--error-shadow: rgba(255, 59, 255, 0.9);
+		--btn-hover-bg: rgba(255, 59, 255, 0.15);
+		--grid-empty:   #1e1e2e;
+	}
+
+	/* Alternative theme: dark bg + cyan + orange */
+	[data-theme="alt"] {
+		--border:       rgba(0, 245, 255, 0.35);
+		--accent:       #00f5ff;
+		--accent-2:     #ff6b35;
+		--focus-ring:   0 0 0 3px rgba(0, 245, 255, 0.55);
+		--error-color:  #ff6b35;
+		--error-border: rgba(255, 107, 53, 0.6);
+		--error-shadow: rgba(255, 107, 53, 0.9);
+		--btn-hover-bg: rgba(0, 245, 255, 0.12);
+		--grid-empty:   #1a1e2e;
+	}
+
+	/* ── Base ─────────────────────────────────────────────────── */
+	*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+	body {
+		background: var(--bg);
+		color: var(--text);
+		font-family: 'Press Start 2P', monospace;
+		min-height: 100vh;
+		padding: 2rem 1rem 4rem;
+	}
+
+	/* ── Screen-reader-only helper ────────────────────────────── */
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	/* ── Container ────────────────────────────────────────────── */
+	.battle-container {
+		max-width: 900px;
+		margin: 0 auto;
+		position: relative;
+	}
+
+	.battle-container h1 {
+		font-size: clamp(0.9rem, 3vw, 1.4rem);
+		text-align: center;
+		color: var(--accent);
+		text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+		margin: 0 0 0.75rem;
+		line-height: 1.7;
+	}
+
+	.battle-container > p {
+		text-align: center;
+		font-size: 0.55rem;
+		color: var(--muted);
+		margin: 0 0 2rem;
+	}
+
+	/* ── Theme toggle button ──────────────────────────────────── */
+	.theme-toggle {
+		position: absolute;
+		top: 0;
+		right: 0;
+		background: transparent;
+		border: 1px solid var(--border);
+		color: var(--text);
+		font-size: 1.1rem;
+		padding: 0.35rem 0.55rem;
+		cursor: pointer;
+		border-radius: 4px;
+		transition: border-color 0.2s, box-shadow 0.2s;
+		line-height: 1;
+	}
+	.theme-toggle:hover {
+		border-color: var(--accent);
+		box-shadow: 0 0 6px var(--accent);
+	}
+	.theme-toggle:focus-visible {
+		outline: none;
+		box-shadow: var(--focus-ring);
+		border-color: var(--accent);
+	}
+
+	/* ── Inputs row ───────────────────────────────────────────── */
+	.inputs {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		flex-wrap: wrap;
+		margin-bottom: 1.25rem;
+	}
+
+	.inputs input {
+		flex: 1 1 180px;
+		background: var(--panel);
+		border: 1px solid var(--border);
+		color: var(--text);
+		font-family: inherit;
+		font-size: 0.6rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 4px;
+		outline: none;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+	.inputs input::placeholder { color: var(--muted); }
+	.inputs input:focus,
+	.inputs input:focus-visible {
+		border-color: var(--accent);
+		box-shadow: var(--focus-ring);
+	}
+	.inputs input.input-error {
+		border-color: var(--error-color);
+		box-shadow: 0 0 0 3px var(--error-border);
+	}
+
+	/* ── Battle button ────────────────────────────────────────── */
+	.battle-btn {
+		background: transparent;
+		border: 2px solid var(--accent);
+		color: var(--accent);
+		font-family: inherit;
+		font-size: 0.65rem;
+		padding: 0.6rem 1.2rem;
+		cursor: pointer;
+		border-radius: 4px;
+		text-shadow: 0 0 6px var(--accent);
+		box-shadow: 0 0 8px var(--accent);
+		transition: background 0.2s, box-shadow 0.2s;
+		white-space: nowrap;
+	}
+	.battle-btn:hover {
+		background: var(--btn-hover-bg);
+		box-shadow: 0 0 16px var(--accent), 0 0 32px var(--accent);
+	}
+	.battle-btn:focus-visible {
+		outline: none;
+		box-shadow: var(--focus-ring), 0 0 12px var(--accent);
+	}
+
+	/* ── Error banner ─────────────────────────────────────────── */
+	.error {
+		display: none;
+		font-size: 0.55rem;
+		color: var(--error-color);
+		border: 1px solid transparent;
+		padding: 0.5rem 0.75rem;
+		border-radius: 4px;
+		margin-bottom: 1rem;
+	}
+	.error.is-active {
+		display: block;
+		border-color: var(--error-border);
+		text-shadow: 0 0 8px var(--error-shadow);
+		animation: neon-pulse 1.6s infinite alternate;
+	}
+	@keyframes neon-pulse {
+		from { opacity: 1; }
+		to   { opacity: 0.65; }
+	}
+
+	/* ── Loading indicator ────────────────────────────────────── */
+	.loading {
+		font-size: 0.55rem;
+		color: var(--accent-2);
+		text-shadow: 0 0 6px var(--accent-2);
+		margin-bottom: 1rem;
+		animation: neon-pulse 0.8s infinite alternate;
+	}
+
+	/* ── Results area ─────────────────────────────────────────── */
+	.results {
+		display: flex;
+		gap: 1.5rem;
+		align-items: flex-start;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.player {
+		background: var(--panel);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 1rem;
+		flex: 1 1 280px;
+		max-width: 400px;
+	}
+
+	.player strong {
+		display: block;
+		color: var(--accent);
+		text-shadow: 0 0 6px var(--accent);
+		font-size: 0.65rem;
+		margin-bottom: 0.5rem;
+		word-break: break-all;
+	}
+
+	.player br + * { color: var(--muted); font-size: 0.5rem; line-height: 2; }
+
+	.vs-badge {
+		align-self: center;
+		color: var(--accent-2);
+		text-shadow: 0 0 10px var(--accent-2), 0 0 20px var(--accent-2);
+		font-size: 1.2rem;
+		padding: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	/* ── Contribution grid ────────────────────────────────────── */
+	.contrib-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		margin-top: 0.75rem;
+	}
+
+	.contrib-cell {
+		width: 8px;
+		height: 8px;
+		border-radius: 1px;
+		background: var(--grid-empty);
+	}
+
+	/* ── Responsive layout ────────────────────────────────────── */
+	@media (max-width: 1024px) {
+		.results { flex-direction: column; align-items: center; }
+		.vs-badge { align-self: center; }
+	}
+
+	@media (max-width: 640px) {
+		.inputs { flex-direction: column; }
+		.inputs input,
+		.inputs .battle-btn { width: 100%; flex: none; }
+	}
+</style>

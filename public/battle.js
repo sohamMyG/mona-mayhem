@@ -6,16 +6,36 @@ const results = document.getElementById('results');
 const errorDiv = document.getElementById('error');
 const loadingDiv = document.getElementById('loading');
 
-function showError(msg) {
+function showError(msg, invalidInputs) {
   errorDiv.textContent = msg;
-  errorDiv.style.display = '';
+  errorDiv.classList.add('is-active');
+  document.body.classList.add('has-error');
+  // Clear previous input-error states
+  [p1, p2].forEach(function(el) {
+    el.classList.remove('input-error');
+    el.removeAttribute('aria-invalid');
+  });
+  // Mark and focus the first invalid input
+  if (Array.isArray(invalidInputs) && invalidInputs.length > 0) {
+    invalidInputs.forEach(function(el) {
+      el.classList.add('input-error');
+      el.setAttribute('aria-invalid', 'true');
+    });
+    invalidInputs[0].focus({ preventScroll: true });
+  }
 }
 function clearError() {
   errorDiv.textContent = '';
-  errorDiv.style.display = 'none';
+  errorDiv.classList.remove('is-active');
+  document.body.classList.remove('has-error');
+  [p1, p2].forEach(function(el) {
+    el.classList.remove('input-error');
+    el.removeAttribute('aria-invalid');
+  });
 }
 function showLoading(show) {
   loadingDiv.style.display = show ? '' : 'none';
+  document.body.setAttribute('aria-busy', show ? 'true' : 'false');
 }
 
 const MS_PER_DAY = 86400000;
@@ -157,7 +177,10 @@ async function battle() {
   const u1 = p1.value.trim();
   const u2 = p2.value.trim();
   if (!u1 || !u2) {
-    showError('Both usernames are required.');
+    const invalid = [];
+    if (!u1) invalid.push(p1);
+    if (!u2) invalid.push(p2);
+    showError('Please provide both GitHub usernames.', invalid);
     return;
   }
   showLoading(true);
