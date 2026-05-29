@@ -92,7 +92,9 @@ export const GET: APIRoute = async ({ params }) => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-    } catch {}
+    } catch (e) {
+      console.error('Cache read error for ' + cacheFile, e);
+    }
     // Fetch from GitHub
     const res = await fetch(`https://github.com/${username}.contribs`);
     if (!res.ok) {
@@ -101,7 +103,19 @@ export const GET: APIRoute = async ({ params }) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const json = await res.json();
+    const ctype = res.headers.get('content-type') || '';
+    let json;
+    if (ctype.includes('application/json')) {
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        console.error('Failed to parse JSON from upstream for', username, parseErr);
+        return new Response(JSON.stringify({ error: 'Invalid upstream JSON' }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      }
+    } else {
+      console.error('Upstream did not return JSON for', username, 'content-type:', ctype);
+      return new Response(JSON.stringify({ error: 'Upstream did not return JSON', status: res.status }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
     const mapped = mapContributionData(json, username);
     await fs.writeFile(cacheFile, JSON.stringify(mapped), 'utf-8');
     return new Response(JSON.stringify(mapped), {
@@ -109,7 +123,8 @@ export const GET: APIRoute = async ({ params }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Internal server error', details: String(err) }), {
+    console.error('Contribution API error for', username, err);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

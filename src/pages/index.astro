@@ -48,6 +48,10 @@
         .inputs input, .battle-btn { width: 100%; }
         .inputs { gap: 0.6rem; }
       }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  .vs-badge, .player { will-change: auto; }
+}
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -148,6 +148,7 @@ function buildGridElement(contribs) {
   const cid = getAstroCid();
   const container = document.createElement('div');
   container.className = 'contrib-grid';
+  container.setAttribute('aria-hidden', 'true');
   if (cid) container.setAttribute(cid.name, cid.value);
   (contribs.days || []).forEach(function(day) {
     const cell = document.createElement('div');
@@ -169,7 +170,18 @@ function buildStatsElement(contribs) {
   strong.textContent = contribs.username || '';
   el.appendChild(strong);
   const info = document.createElement('div');
-  info.innerHTML = 'Total: ' + (contribs.total || 0) + '<br>Streak: ' + (contribs.streak || 0) + '<br>' + (contribs.startDate || '') + ' to ' + (contribs.endDate || '');
+
+  const textTotal = document.createTextNode('Total: ' + (contribs.total || 0));
+  info.appendChild(textTotal);
+  info.appendChild(document.createElement('br'));
+
+  const textStreak = document.createTextNode('Streak: ' + (contribs.streak || 0));
+  info.appendChild(textStreak);
+  info.appendChild(document.createElement('br'));
+
+  const rangeText = document.createTextNode((contribs.startDate || '') + ' to ' + (contribs.endDate || ''));
+  info.appendChild(rangeText);
+
   el.appendChild(info);
   return el;
 }
@@ -252,17 +264,23 @@ async function battle() {
     results.appendChild(vsEl);
     results.appendChild(playerEl2);
 
-    // trigger reveal animations (staggered)
-    setTimeout(() => playerEl1.classList.add('is-revealed'), 80);
-    setTimeout(() => vsEl.classList.add('vs-animate'), 160);
-    setTimeout(() => playerEl2.classList.add('is-revealed'), 240);
+    // trigger reveal animations (staggered), respect prefers-reduced-motion
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      setTimeout(() => playerEl1.classList.add('is-revealed'), 80);
+      setTimeout(() => vsEl.classList.add('vs-animate'), 160);
+      setTimeout(() => playerEl2.classList.add('is-revealed'), 240);
+    } else {
+      playerEl1.classList.add('is-revealed');
+      vsEl.classList.add('vs-animate');
+      playerEl2.classList.add('is-revealed');
+    }
   } catch (e) {
     showError('Error: ' + e.message);
   }
   showLoading(false);
 }
 
-btn.addEventListener('click', battle);
-[p1, p2].forEach(input => input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') battle();
-}));
+if (btn) btn.addEventListener('click', battle);
+if (p1) p1.addEventListener('keydown', e => { if (e.key === 'Enter') battle(); });
+if (p2) p2.addEventListener('keydown', e => { if (e.key === 'Enter') battle(); });
